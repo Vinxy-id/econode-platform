@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Leaf,
   ArrowRight,
@@ -15,9 +15,13 @@ import {
   GraduationCap,
   ShieldCheck,
   Users,
+  Sliders,
+  Terminal,
+  AlertCircle,
+  Clock,
   Layers,
 } from 'lucide-react';
-import { PRICING_PLANS, TabId } from '../data/mockData';
+import { PRICING_PLANS, TabId, formatIdr } from '../data/mockData';
 
 interface LandingPageProps {
   onOpenDashboard: (tab?: TabId) => void;
@@ -71,359 +75,770 @@ const ARCH_STAGES = [
   },
 ];
 
+const TELEMETRY_PROVIDERS = [
+  { name: 'AWS', region: 'ap-southeast-3', status: 'Synced' },
+  { name: 'GCP', region: 'asia-southeast2', status: 'Synced' },
+  { name: 'Alibaba Cloud', region: 'ap-southeast-5', status: 'Idle Alert' },
+  { name: 'Biznet Gio', region: 'ID-West', status: 'Synced' },
+  { name: 'Proxmox VE', region: 'Lab Kampus UBP', status: 'Circular' },
+];
+
+const SCHEDULER_WINDOWS = [
+  { hour: '00', level: 'low', label: '01:00-05:00' },
+  { hour: '04', level: 'low', label: 'Optimal' },
+  { hour: '08', level: 'mid', label: '08:00' },
+  { hour: '12', level: 'high', label: 'Peak' },
+  { hour: '16', level: 'high', label: '16:00' },
+  { hour: '20', level: 'mid', label: '20:00' },
+];
+
 export const LandingPage: React.FC<LandingPageProps> = ({ onOpenDashboard }) => {
+  // Interactive ROI & Carbon Savings Calculator state
+  const [cloudSpendJt, setCloudSpendJt] = useState<number>(40);
+  const [onPremServers, setOnPremServers] = useState<number>(6);
+  const [previewTab, setPreviewTab] = useState<TabId>('overview');
+
+  const monthlyCloudSavings = Math.round(cloudSpendJt * 1_000_000 * 0.31);
+  const monthlyCarbonReduced = Math.round(cloudSpendJt * 8.1 + onPremServers * 15.6);
+  const eWastePreventedKg = (onPremServers * 23.8).toFixed(1).replace('.', ',');
+  const capexSavedJt = onPremServers * 28;
+  const recommendedPlan =
+    onPremServers >= 3 || cloudSpendJt > 20
+      ? { name: 'Campus / Enterprise', price: 'Rp 2.500.000/bln', fee: 2_500_000 }
+      : { name: 'Pro SaaS', price: 'Rp 499.000/bln', fee: 499_000 };
+  const roiMultiplier = (monthlyCloudSavings / recommendedPlan.fee).toFixed(1).replace('.', ',');
+
+  // SVG radial ring for 88 / 100
+  const ringR = 22;
+  const ringC = 2 * Math.PI * ringR;
+  const ringOff = ringC * (1 - 0.88);
+
   return (
     <div className="min-h-screen bg-[#F3F6F4] text-[#0F172A]">
-      {/* Sticky Minimal Topbar */}
-      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80">
-        <div className="max-w-[1320px] mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm">
-              <Leaf className="w-5 h-5 text-white stroke-[2.2]" />
-            </div>
-            <div>
+      {/* Dark Atmospheric Hero Shell + Floating Liquid-Glass Navbar */}
+      <div className="hero-obsidian relative overflow-hidden border-b border-emerald-950/60">
+        <div className="dot-grid-bg absolute inset-0 opacity-60 pointer-events-none" />
+
+        {/* Floating Liquid-Glass Navbar */}
+        <div className="sticky top-3 z-50 max-w-[1320px] mx-auto px-5 pt-3">
+          <header className="rounded-2xl bg-[#0B1C16]/75 backdrop-blur-xl border border-emerald-400/20 shadow-[0_14px_40px_-14px_rgba(0,0,0,0.6)] px-5 py-2.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-[0_0_18px_-4px_rgba(16,185,129,0.7)]">
+                <Leaf className="w-4 h-4 text-slate-950 stroke-[2.3]" />
+              </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900">
+                <span className="text-base font-extrabold tracking-tight text-white">
                   EcoNode
                 </span>
-                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   v1.2
                 </span>
               </div>
             </div>
-          </div>
 
-          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600">
-            <a href="#fitur" className="hover:text-emerald-700 transition-colors">
-              Fitur
-            </a>
-            <a href="#arsitektur" className="hover:text-emerald-700 transition-colors">
-              Arsitektur
-            </a>
-            <a href="#harga" className="hover:text-emerald-700 transition-colors">
-              Harga
-            </a>
-            <a href="#tim" className="hover:text-emerald-700 transition-colors">
-              Tim
-            </a>
-          </nav>
-
-          <button
-            onClick={() => onOpenDashboard('overview')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#0B1914] text-white hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            Live Demo Dashboard
-            <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
-          </button>
-        </div>
-      </header>
-
-      {/* Hero Section (Sized cleanly for 1440x900 above-the-fold composition) */}
-      <section className="max-w-[1320px] mx-auto px-6 pt-10 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Hero Copy */}
-          <div className="lg:col-span-6 space-y-5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              UnibPreneur Competition 2026 • Green FinOps &amp; Circular Computing
-            </div>
-
-            <h1 className="text-4xl xl:text-[42px] font-extrabold text-slate-900 tracking-tight leading-[1.13]">
-              Tekan Biaya Cloud{' '}
-              <span className="text-emerald-600">20–40%</span>, Perpanjang Umur
-              Server, &amp; Raih Skor{' '}
-              <span className="text-emerald-600 whitespace-nowrap">GreenMetric A</span>.
-            </h1>
-
-            <p className="text-sm xl:text-base text-slate-600 leading-relaxed max-w-xl">
-              Platform SaaS B2B berbasis Artificial Intelligence yang
-              mengintegrasikan audit biaya multi-cloud, deteksi pemborosan kode
-              CI/CD, revitalisasi server fisik sirkular, serta pelaporan ESG
-              &amp; UI GreenMetric dalam satu klik.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
-                onClick={() => onOpenDashboard('overview')}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-[0_10px_24px_-10px_rgba(5,150,105,0.65)]"
-              >
-                Buka Live Demo Dashboard
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <a
-                href="#arsitektur"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-white border border-slate-200 text-slate-800 hover:border-emerald-500 hover:text-emerald-700 transition-colors"
-              >
-                <Layers className="w-4 h-4 text-emerald-600" />
-                Lihat Arsitektur
+            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
+              <a href="#fitur" className="hover:text-emerald-300 transition-colors">
+                Fitur
               </a>
-            </div>
+              <a href="#roi-calculator" className="hover:text-emerald-300 transition-colors">
+                Simulator ROI
+              </a>
+              <a href="#arsitektur" className="hover:text-emerald-300 transition-colors">
+                Arsitektur
+              </a>
+              <a href="#harga" className="hover:text-emerald-300 transition-colors">
+                Harga
+              </a>
+              <a href="#tim" className="hover:text-emerald-300 transition-colors">
+                Tim
+              </a>
+            </nav>
 
-            <div className="pt-3 border-t border-slate-200/80">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Ekosistem Telemetri Terdukung
-              </p>
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-700">
-                {[
-                  'AWS',
-                  'Google Cloud',
-                  'Alibaba Cloud',
-                  'Biznet Gio',
-                  'Proxmox VE',
-                  'GitHub Actions',
-                ].map((tech) => (
-                  <span
-                    key={tech}
-                    className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px]"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+            <button
+              onClick={() => onOpenDashboard('overview')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-colors shadow-[0_0_20px_-6px_rgba(52,211,153,0.8)]"
+            >
+              Live Demo Dashboard
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </header>
+        </div>
 
-          {/* Right Hero: Interactive Bento Hero Preview Card */}
-          <div className="lg:col-span-6">
-            <div className="bento-hero p-5 text-white space-y-4">
-              {/* Mini Window Header */}
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-bold text-white">
-                    EcoNode Live Telemetry Preview
-                  </span>
-                </div>
-                <span className="font-mono-num text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-0.5 rounded-full">
-                  UPT TIK Universitas Bhinneka PGRI
+        {/* Cinematic Hero Content */}
+        <section className="relative z-10 max-w-[1320px] mx-auto px-6 pt-9 pb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left Copy */}
+            <div className="lg:col-span-6 space-y-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                 </span>
+                AI FinOps Engine v1.2 • Live Telemetry • UPC 2026
               </div>
 
-              {/* 4 Bento Metric Tiles */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
-                  <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
-                    <span>Biaya Cloud</span>
-                    <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  <div className="mt-1.5 font-mono-num text-xl font-extrabold text-white">
-                    -31%{' '}
-                    <span className="text-xs font-semibold text-emerald-300">
-                      Rp 12,45 jt/bln
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-emerald-100/70 mt-1">
-                    Hemat kumulatif 6 bln: Rp 51,7 jt
-                  </div>
-                </div>
+              <h1 className="text-4xl xl:text-[43px] font-extrabold text-white tracking-tight leading-[1.12]">
+                Tekan Biaya Cloud{' '}
+                <span className="bg-gradient-to-r from-emerald-300 via-emerald-400 to-teal-200 bg-clip-text text-transparent">
+                  20–40%
+                </span>
+                , Perpanjang Umur Server, &amp; Raih{' '}
+                <span className="bg-gradient-to-r from-emerald-300 to-sky-300 bg-clip-text text-transparent whitespace-nowrap">
+                  GreenMetric Grade A
+                </span>
+                .
+              </h1>
 
-                <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
-                  <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
-                    <span>Reduksi Karbon</span>
-                    <Leaf className="w-3.5 h-3.5 text-sky-400" />
-                  </div>
-                  <div className="mt-1.5 font-mono-num text-xl font-extrabold text-white">
-                    418{' '}
-                    <span className="text-xs font-semibold text-sky-300">
-                      kgCO2e/bln
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-emerald-100/70 mt-1">
-                    Setara 19 pohon dewasa / bulan
-                  </div>
-                </div>
+              <p className="text-sm xl:text-[15px] text-slate-300 leading-relaxed max-w-xl">
+                Ekosistem SaaS Green FinOps berbasis kecerdasan buatan yang
+                mengaudit pemborosan multi-cloud, mengoptimalkan kode CI/CD,
+                merevitalisasi server fisik sirkular, serta menyusun laporan ESG
+                &amp; UI GreenMetric secara otomatis.
+              </p>
 
-                <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
-                  <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
-                    <span>Umur Server Sirkular</span>
-                    <Recycle className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  <div className="mt-1.5 font-mono-num text-xl font-extrabold text-white">
-                    +24 Bln{' '}
-                    <span className="text-xs font-semibold text-emerald-300">
-                      6 Unit
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-emerald-100/70 mt-1">
-                    142,8 kg e-waste &amp; Rp 168 jt Capex
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
-                  <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
-                    <span>UI GreenMetric</span>
-                    <Award className="w-3.5 h-3.5 text-amber-300" />
-                  </div>
-                  <div className="mt-1.5 font-mono-num text-xl font-extrabold text-white">
-                    88 / 100{' '}
-                    <span className="text-xs font-semibold text-emerald-300">
-                      Grade A
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-emerald-100/70 mt-1">
-                    Siap ekspor laporan audit PDF/CSV
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  onClick={() => onOpenDashboard(previewTab)}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-all shadow-[0_12px_28px_-8px_rgba(52,211,153,0.65)]"
+                >
+                  Buka Live Demo Dashboard
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <a
+                  href="#roi-calculator"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-white/10 border border-white/20 text-white hover:bg-white/15 transition-colors backdrop-blur-md"
+                >
+                  <Sliders className="w-4 h-4 text-emerald-300" />
+                  Hitung Simulasi ROI
+                </a>
               </div>
 
-              {/* Mini Trend Preview Strip + Quick Jump Tabs */}
-              <div className="rounded-xl bg-slate-950/50 border border-white/10 p-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <svg width="88" height="28" viewBox="0 0 88 28">
-                    <polyline
-                      fill="none"
-                      stroke="#94A3B8"
-                      strokeWidth="1.5"
-                      strokeDasharray="3 3"
-                      points="2,8 22,7 44,9 66,8 86,9"
-                    />
-                    <polyline
-                      fill="none"
-                      stroke="#34D399"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      points="2,9 22,15 44,20 66,23 86,25"
-                    />
-                    <circle cx="86" cy="25" r="2.5" fill="#34D399" />
-                  </svg>
-                  <div className="text-[11px] text-slate-300">
-                    Pilih modul demo langsung:
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {(
-                    [
-                      { id: 'overview', label: 'Overview' },
-                      { id: 'profiler', label: 'Profiler' },
-                      { id: 'circular', label: 'Circular' },
-                      { id: 'esg', label: 'ESG Report' },
-                    ] as const
-                  ).map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => onOpenDashboard(item.id)}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/10 hover:bg-emerald-400 hover:text-slate-950 text-white transition-colors"
+              <div className="pt-3 border-t border-white/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200/60 mb-2">
+                  Ekosistem Telemetri Terintegrasi
+                </p>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-200">
+                  {[
+                    'AWS',
+                    'Google Cloud',
+                    'Alibaba Cloud',
+                    'Biznet Gio',
+                    'Proxmox VE',
+                    'GitHub Actions',
+                  ].map((tech) => (
+                    <span
+                      key={tech}
+                      className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10"
                     >
-                      {item.label}
-                    </button>
+                      {tech}
+                    </span>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* 3-Pillar Bento Feature Grid */}
+            {/* Right: Layered Glassmorphic Product Showcase Window */}
+            <div className="lg:col-span-6 relative">
+              <div className="rounded-2xl bg-[#0B1C16]/85 backdrop-blur-xl border border-emerald-400/25 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.75)] p-4 text-white space-y-3.5">
+                {/* Window Chrome + Anomaly Alert Pill */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+                    </div>
+                    <span className="font-mono-num text-[11px] text-slate-400 ml-1">
+                      econode.app / {previewTab}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/35 text-amber-300 text-[10px] font-bold">
+                    <AlertCircle className="w-3 h-3 text-amber-400" />
+                    Anomaly Detected: Idle c5.2xlarge
+                  </div>
+                </div>
+
+                {/* 4 Dark-Glass Metric Tiles */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                    <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
+                      <span>Penghematan Biaya</span>
+                      <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <div className="mt-1 font-mono-num text-lg font-extrabold text-white">
+                      -31%{' '}
+                      <span className="text-xs font-semibold text-emerald-300">
+                        Rp 12,45 jt/bln
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 font-mono-num">
+                      6-Bln Kumulatif: Rp 51,7 jt
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                    <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
+                      <span>Reduksi Emisi Karbon</span>
+                      <Leaf className="w-3.5 h-3.5 text-sky-400" />
+                    </div>
+                    <div className="mt-1 font-mono-num text-lg font-extrabold text-white">
+                      418{' '}
+                      <span className="text-xs font-semibold text-sky-300">
+                        kgCO2e/bln
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Setara 19 pohon dewasa / bulan
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                    <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
+                      <span>Circular Server</span>
+                      <Recycle className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <div className="mt-1 font-mono-num text-lg font-extrabold text-white">
+                      +24 Bln{' '}
+                      <span className="text-xs font-semibold text-emerald-300">
+                        6 Unit
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 font-mono-num">
+                      142,8 kg e-waste • Rp 168 jt Capex
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                    <div className="flex items-center justify-between text-[11px] text-emerald-200/80 font-semibold">
+                      <span>UI GreenMetric</span>
+                      <Award className="w-3.5 h-3.5 text-amber-300" />
+                    </div>
+                    <div className="mt-1 font-mono-num text-lg font-extrabold text-white">
+                      88 / 100{' '}
+                      <span className="text-xs font-semibold text-emerald-300">
+                        Grade A
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Siap audit PDF &amp; CSV 1-klik
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Shaded Area Sparkline Showcase */}
+                <div className="rounded-xl bg-slate-950/60 border border-white/10 p-3">
+                  <div className="flex items-center justify-between text-[10px] mb-1.5">
+                    <span className="font-semibold text-slate-300">
+                      Baseline Spend vs EcoNode Optimized (Jun – Nov 2026)
+                    </span>
+                    <span className="font-mono-num font-bold text-emerald-400">
+                      Rp 40,2 jt -&gt; Rp 27,7 jt
+                    </span>
+                  </div>
+                  <svg viewBox="0 0 420 68" className="w-full h-16">
+                    <defs>
+                      <linearGradient id="showcaseArea" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" stopOpacity="0.45" />
+                        <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    <line x1="0" y1="14" x2="420" y2="14" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                    <line x1="0" y1="38" x2="420" y2="38" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                    {/* Baseline dashed */}
+                    <polyline
+                      fill="none"
+                      stroke="#64748B"
+                      strokeWidth="1.75"
+                      strokeDasharray="5 5"
+                      points="10,16 90,18 172,15 254,19 336,17 410,19"
+                    />
+                    {/* Shaded area */}
+                    <path
+                      d="M10,19 C70,32 130,42 172,46 C230,52 310,56 410,59 L410,66 L10,66 Z"
+                      fill="url(#showcaseArea)"
+                    />
+                    {/* Optimized line */}
+                    <path
+                      d="M10,19 C70,32 130,42 172,46 C230,52 310,56 410,59"
+                      fill="none"
+                      stroke="#34D399"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="410" cy="59" r="3.5" fill="#A7F3D0" />
+                  </svg>
+                </div>
+
+                {/* Clickable Module Switcher Pills */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <span className="text-[11px] text-slate-400">
+                    Pilih modul demo interaktif:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(
+                      [
+                        { id: 'overview', label: 'Overview' },
+                        { id: 'profiler', label: 'Profiler' },
+                        { id: 'circular', label: 'Circular' },
+                        { id: 'esg', label: 'ESG Report' },
+                      ] as const
+                    ).map((m) => (
+                      <button
+                        key={m.id}
+                        onMouseEnter={() => setPreviewTab(m.id)}
+                        onClick={() => onOpenDashboard(m.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                          previewTab === m.id
+                            ? 'bg-emerald-400 text-slate-950'
+                            : 'bg-white/10 text-slate-200 hover:bg-white/20'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Asymmetric 6-Tile Bento Feature Grid */}
       <section id="fitur" className="max-w-[1320px] mx-auto px-6 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">
-              Tiga Pilar Inovasi EcoNode
+              Arsitektur Produk Bento EcoNode
             </span>
-            <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
-              Satu Platform untuk FinOps, Ekonomi Sirkular, &amp; ESG
+            <h2 className="text-2xl xl:text-3xl font-extrabold text-slate-900 mt-1">
+              6 Kapabilitas Inti Green FinOps &amp; Ekonomi Sirkular
             </h2>
           </div>
           <button
             onClick={() => onOpenDashboard('overview')}
             className="text-xs font-bold text-emerald-700 hover:underline inline-flex items-center gap-1"
           >
-            Jelajahi Semua Modul Interaktif
+            Buka Workspace Lengkap
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bento-card p-5 flex flex-col justify-between">
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mb-3.5">
-                <Cpu className="w-5 h-5 text-emerald-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Tile 1 (Wide - 7 cols): AI Cloud & CI/CD Carbon Profiler */}
+          <div className="lg:col-span-7 bento-card p-5 flex flex-col justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="max-w-md">
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full mb-2">
+                  <Cpu className="w-3.5 h-3.5" />
+                  AI Cloud &amp; CI/CD Carbon Profiler
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Deteksi VM Idle &amp; Kode Boros Energi Sebelum Deploy
+                </h3>
+                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  Analisis CPU/RAM multi-cloud dan inspeksi GitHub Actions untuk
+                  menekan query N+1 serta over-provisioning spesifikasi server.
+                </p>
               </div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                AI Cloud &amp; Code Carbon Profiler
-              </h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                Memindai utilisasi CPU/RAM lintas AWS, GCP, Alibaba Cloud,
-                Biznet Gio, dan Proxmox serta mendeteksi query boros energi di
-                GitHub CI/CD secara otomatis.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="font-mono-num text-xs font-bold text-emerald-700">
-                Hemat Rp 12,45 jt/bln
-              </span>
               <button
                 onClick={() => onOpenDashboard('profiler')}
-                className="text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center gap-1"
+                className="text-xs font-bold text-emerald-700 hover:underline inline-flex items-center gap-1"
               >
                 Buka Profiler <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-          </div>
 
-          <div className="bento-card p-5 flex flex-col justify-between">
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center mb-3.5">
-                <Recycle className="w-5 h-5 text-sky-600" />
+            {/* Mini Terminal Diff Artifact */}
+            <div className="mt-4 rounded-xl bg-[#0B1914] text-slate-200 p-3.5 font-mono-num text-[11px] border border-emerald-900/60 space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1.5 border-b border-white/10">
+                <span className="inline-flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                  econode-cli scan --repo ubp/siakad-gateway
+                </span>
+                <span className="text-emerald-400 font-bold">PR #104 Ready</span>
               </div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                Circular Server &amp; E-Waste Tracker
-              </h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                Merevitalisasi server fisik lama kampus atau UMKM menjadi klaster
-                Proxmox VE/LXC hemat daya untuk memperpanjang umur pakai dan
-                menekan limbah elektronik.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="font-mono-num text-xs font-bold text-sky-700">
-                +24 bln • 142,8 kg e-waste
-              </span>
-              <button
-                onClick={() => onOpenDashboard('circular')}
-                className="text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center gap-1"
-              >
-                Buka Tracker <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="text-amber-300">
+                - query: N+1 loop in billingSync.ts:142 (+28.4 kWh/bln)
+              </div>
+              <div className="text-emerald-300">
+                + patch: -38% query energy | c5.2xlarge -&gt; c5.large (-Rp 1,85 jt/bln)
+              </div>
             </div>
           </div>
 
-          <div className="bento-card p-5 flex flex-col justify-between">
+          {/* Tile 2 (5 cols): Circular Server & E-Waste Tracker */}
+          <div className="lg:col-span-5 bento-card p-5 flex flex-col justify-between">
             <div>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center mb-3.5">
-                <FileCheck2 className="w-5 h-5 text-amber-600" />
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full">
+                  <Recycle className="w-3.5 h-3.5" />
+                  Circular Server Tracker
+                </span>
+                <button
+                  onClick={() => onOpenDashboard('circular')}
+                  className="text-xs font-bold text-slate-700 hover:text-emerald-700 inline-flex items-center gap-1"
+                >
+                  Detail <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                One-Click ESG &amp; UI GreenMetric Report
+              <h3 className="text-lg font-extrabold text-slate-900">
+                Revitalisasi Server Lama via Proxmox LXC
               </h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                Mengonversi telemetri kWh dan reduksi emisi menjadi dokumen
-                audit berstandar UI GreenMetric dan GRI 302/305 dalam format
-                PDF atau CSV instan.
+              <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                Ubah server fisik usia 5 tahun menjadi node container hemat daya
+                untuk menahan limbah elektronik dan belanja Capex baru.
               </p>
             </div>
+
+            {/* Tactile Lifespan Timeline Bar + E-waste Badges */}
+            <div className="mt-4 space-y-2.5">
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
+                  <span className="text-slate-600">Siklus Umur Hardware</span>
+                  <span className="font-mono-num text-emerald-700">
+                    5 thn -&gt; 7 thn (+24 bln)
+                  </span>
+                </div>
+                <div className="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden flex">
+                  <div className="h-full bg-slate-500 w-[71%]" />
+                  <div className="h-full bg-emerald-500 w-[29%]" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2 font-mono-num text-[11px] font-bold">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  142,8 kg e-waste dicegah
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+                  Capex Rp 168 jt
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tile 3 (4 cols): One-Click ESG & UI GreenMetric */}
+          <div className="lg:col-span-4 bento-card p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full mb-2">
+                  <FileCheck2 className="w-3.5 h-3.5" />
+                  One-Click ESG Report
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Audit UI GreenMetric &amp; GRI 302/305 Instan
+                </h3>
+              </div>
+              {/* Radial Ring */}
+              <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                  <circle cx="28" cy="28" r={ringR} fill="none" stroke="#E2E8F0" strokeWidth="5" />
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r={ringR}
+                    fill="none"
+                    stroke="#059669"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray={ringC}
+                    strokeDashoffset={ringOff}
+                  />
+                </svg>
+                <span className="absolute font-mono-num text-xs font-extrabold text-emerald-700">
+                  88
+                </span>
+              </div>
+            </div>
+
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="font-mono-num text-xs font-bold text-emerald-700">
-                Skor 88/100 (Grade A)
+              <span className="font-mono-num text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                Grade A • GRI 302/305
               </span>
               <button
                 onClick={() => onOpenDashboard('esg')}
                 className="text-xs font-bold text-slate-800 hover:text-emerald-700 inline-flex items-center gap-1"
               >
-                Lihat Laporan <ArrowRight className="w-3.5 h-3.5" />
+                Ekspor PDF/CSV <ArrowRight className="w-3.5 h-3.5" />
               </button>
+            </div>
+          </div>
+
+          {/* Tile 5 (Wide - 8 cols): Carbon-Aware Batch Scheduler */}
+          <div className="lg:col-span-8 bento-card p-5 flex flex-col justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full mb-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  Carbon-Aware Batch Scheduler
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Eksekusi ETL &amp; Backup Otomatis di Window Rendah Karbon
+                </h3>
+              </div>
+              <span className="font-mono-num text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                01:00–05:00 WIB • -28% gCO2/kWh
+              </span>
+            </div>
+
+            {/* Visual Time-Window Bar */}
+            <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-3">
+              <div className="grid grid-cols-6 gap-1.5">
+                {SCHEDULER_WINDOWS.map((slot) => (
+                  <div key={slot.hour} className="space-y-1">
+                    <div
+                      className={`h-6 rounded-lg flex items-center justify-center text-[10px] font-bold font-mono-num ${
+                        slot.level === 'low'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : slot.level === 'mid'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-red-100 text-red-700 border border-red-200'
+                      }`}
+                    >
+                      {slot.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Window hijau dipilih otomatis oleh AI Scheduler</span>
+                <span className="font-mono-num font-bold text-sky-700">
+                  Hemat -42 kgCO2e/bln pada analytics-cron-vm
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tile 4 (7 cols): Multi-Cloud & On-Premise Telemetry Matrix */}
+          <div className="lg:col-span-7 bento-card p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Multi-Cloud &amp; On-Premise Telemetry
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
+                  Pantau Cloud Global, VPS Lokal, &amp; Proxmox Kampus Terpadu
+                </h3>
+              </div>
+              <span className="font-mono-num text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                5 Provider
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {TELEMETRY_PROVIDERS.map((prov) => (
+                <div
+                  key={prov.name}
+                  className="rounded-xl bg-slate-50 border border-slate-200 p-2.5"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        prov.status === 'Idle Alert'
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      }`}
+                    />
+                    <span className="text-xs font-bold text-slate-900 truncate">
+                      {prov.name}
+                    </span>
+                  </div>
+                  <div className="font-mono-num text-[10px] text-slate-500 mt-1 truncate">
+                    {prov.region}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tile 6 (5 cols): Monospace Precision Metrics (Dark Emerald Bento Tile) */}
+          <div className="lg:col-span-5 bento-hero p-5 text-white flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                  Presisi Metrik Terukur
+                </span>
+                <h3 className="text-base font-extrabold text-white mt-0.5">
+                  Dampak Tervalidasi 6 Bulan
+                </h3>
+              </div>
+              <Sparkles className="w-5 h-5 text-emerald-300" />
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3">
+                <div className="text-[10px] text-emerald-200/80">
+                  Akumulasi Hemat Biaya
+                </div>
+                <div className="font-mono-num text-xl font-extrabold text-emerald-300 mt-0.5">
+                  Rp 51,7 jt
+                </div>
+              </div>
+              <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3">
+                <div className="text-[10px] text-emerald-200/80">
+                  Emisi Karbon Ditekan
+                </div>
+                <div className="font-mono-num text-xl font-extrabold text-sky-300 mt-0.5">
+                  1,73 tCO2e
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Interactive Green FinOps ROI & Carbon Savings Simulator */}
+      <section id="roi-calculator" className="max-w-[1320px] mx-auto px-6 py-8">
+        <div className="bento-card p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <div className="lg:col-span-6 space-y-5">
+            <div>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                <Sliders className="w-3.5 h-3.5" />
+                Interactive Green FinOps Simulator
+              </span>
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-2">
+                Simulasikan Penghematan Biaya &amp; Emisi Organisasi Anda
+              </h2>
+              <p className="text-xs text-slate-600 mt-1">
+                Geser parameter belanja cloud dan jumlah server on-premise untuk
+                melihat estimasi penghematan bulanan, e-waste dicegah, dan paket
+                EcoNode optimal.
+              </p>
+            </div>
+
+            {/* Slider 1: Cloud Spend */}
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-800">
+                  Biaya Cloud Bulanan Saat Ini
+                </span>
+                <span className="font-mono-num font-extrabold text-emerald-700 text-sm">
+                  Rp {cloudSpendJt} jt / bln
+                </span>
+              </div>
+              <input
+                type="range"
+                min={5}
+                max={100}
+                step={1}
+                value={cloudSpendJt}
+                onChange={(e) => setCloudSpendJt(Number(e.target.value))}
+                className="w-full accent-emerald-600 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono-num text-slate-400">
+                <span>Rp 5 jt</span>
+                <span>Rp 50 jt</span>
+                <span>Rp 100 jt</span>
+              </div>
+            </div>
+
+            {/* Slider 2: On-Premise Servers */}
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-800">
+                  Jumlah Server On-Premise / Lab
+                </span>
+                <span className="font-mono-num font-extrabold text-sky-700 text-sm">
+                  {onPremServers} Unit
+                </span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={20}
+                step={1}
+                value={onPremServers}
+                onChange={(e) => setOnPremServers(Number(e.target.value))}
+                className="w-full accent-emerald-600 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono-num text-slate-400">
+                <span>1 Unit</span>
+                <span>10 Unit</span>
+                <span>20 Unit</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Live Output Panel */}
+          <div className="lg:col-span-6 bento-hero p-6 text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">
+                  Proyeksi Dampak EcoNode
+                </div>
+                <div className="text-xs text-slate-300 mt-0.5">
+                  Rekomendasi Paket:{' '}
+                  <strong className="text-white">{recommendedPlan.name}</strong> (
+                  {recommendedPlan.price})
+                </div>
+              </div>
+              <span className="font-mono-num text-xs font-extrabold text-slate-950 bg-emerald-400 px-3 py-1 rounded-full">
+                ROI {roiMultiplier}x
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
+                <div className="text-[11px] text-emerald-200/80">
+                  Estimasi Hemat Biaya (-31%)
+                </div>
+                <div className="font-mono-num text-xl font-extrabold text-white mt-1">
+                  {formatIdr(monthlyCloudSavings)}
+                </div>
+                <div className="text-[10px] text-emerald-300 font-mono-num mt-0.5">
+                  per bulan
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
+                <div className="text-[11px] text-emerald-200/80">
+                  Reduksi Emisi Karbon
+                </div>
+                <div className="font-mono-num text-xl font-extrabold text-sky-300 mt-1">
+                  {monthlyCarbonReduced} kgCO2e
+                </div>
+                <div className="text-[10px] text-slate-300 font-mono-num mt-0.5">
+                  ~{Math.max(1, Math.round(monthlyCarbonReduced / 22))} pohon/bln
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
+                <div className="text-[11px] text-emerald-200/80">
+                  Umur Server &amp; E-Waste
+                </div>
+                <div className="font-mono-num text-xl font-extrabold text-emerald-300 mt-1">
+                  +24 Bln
+                </div>
+                <div className="text-[10px] text-slate-300 font-mono-num mt-0.5">
+                  {eWastePreventedKg} kg e-waste dicegah
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/[0.08] border border-white/10 p-3.5">
+                <div className="text-[11px] text-emerald-200/80">
+                  Capex Hardware Dihemat
+                </div>
+                <div className="font-mono-num text-xl font-extrabold text-white mt-1">
+                  Rp {capexSavedJt} jt
+                </div>
+                <div className="text-[10px] text-slate-300 font-mono-num mt-0.5">
+                  Tunda beli {onPremServers} server baru
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onOpenDashboard('overview')}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-400 text-slate-950 hover:bg-emerald-300 transition-colors"
+            >
+              Terapkan Skenario Ini di Live Demo Dashboard
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* System Architecture & Impact Strip */}
-      <section
-        id="arsitektur"
-        className="max-w-[1320px] mx-auto px-6 py-10"
-      >
+      <section id="arsitektur" className="max-w-[1320px] mx-auto px-6 py-8">
         <div className="bento-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>
@@ -434,7 +849,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenDashboard }) => 
                 Alur Telemetri Multi-Cloud hingga Pelaporan Keberlanjutan
               </h2>
             </div>
-            <span className="font-mono-num text-[11px] font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
+            <span className="font-mono-num text-[11px] font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-emerald-600" />
               Next.js • FastAPI • Go Agent • TimescaleDB
             </span>
           </div>
@@ -474,7 +890,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenDashboard }) => 
       </section>
 
       {/* Pricing Section */}
-      <section id="harga" className="max-w-[1320px] mx-auto px-6 py-10">
+      <section id="harga" className="max-w-[1320px] mx-auto px-6 py-8">
         <div className="mb-6">
           <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">
             Model Monetisasi B2B SaaS
@@ -560,13 +976,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenDashboard }) => 
       {/* Team & Footer */}
       <footer
         id="tim"
-        className="mt-6 bg-[#0B1914] text-slate-200 border-t border-emerald-950"
+        className="mt-6 bg-[#06120E] text-slate-200 border-t border-emerald-950"
       >
         <div className="max-w-[1320px] mx-auto px-6 py-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <div className="lg:col-span-5 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-emerald-400 flex items-center justify-center">
                   <Leaf className="w-4 h-4 text-slate-950 stroke-[2.2]" />
                 </div>
                 <span className="text-lg font-extrabold text-white">EcoNode</span>

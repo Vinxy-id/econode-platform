@@ -30,6 +30,18 @@
   box-shadow: 0 12px 28px -14px rgba(6, 78, 59, 0.55);
 }
 
+.hero-obsidian {
+  background:
+    radial-gradient(ellipse 60% 55% at 78% 22%, rgba(16, 185, 129, 0.18), transparent 65%),
+    radial-gradient(ellipse 45% 40% at 18% 85%, rgba(14, 165, 233, 0.10), transparent 60%),
+    linear-gradient(160deg, #06120e 0%, #091a14 50%, #0a1d16 100%);
+}
+
+.dot-grid-bg {
+  background-image: radial-gradient(rgba(16, 185, 129, 0.2) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
 @media print {
   .no-print {
     display: none !important;
