@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    background-color: #f3f6f4;
+    color: #0f172a;
+  }
+
+  .font-mono-num {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.bento-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 24px -16px rgba(15, 23, 42, 0.12);
+}
+
+.bento-hero {
+  background: radial-gradient(circle at 88% 14%, rgba(16, 185, 129, 0.28), transparent 48%),
+    linear-gradient(135deg, #064e3b 0%, #0b2920 52%, #0f172a 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 1rem;
+  box-shadow: 0 12px 28px -14px rgba(6, 78, 59, 0.55);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background-color: #ffffff !important;
+  }
+}
